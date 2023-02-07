@@ -237,6 +237,13 @@ public extension ScalingHeaderScrollView {
         return scalingHeaderScrollView
     }
 
+    /// Passes current scrollOffset  into scrollOfset binding
+    func scrollOffset(_ scrollOffset: Binding<CGFloat>) -> ScalingHeaderScrollView {
+        var scalingHeaderScrollView = self
+        scalingHeaderScrollView._scrollOffset = scrollOffset
+        return scalingHeaderScrollView
+    }
+
     /// Allows to set up callback and `isLoading` state for pull-to-refresh action
     func pullToRefresh(isLoading: Binding<Bool>, perform: @escaping () -> Void) -> ScalingHeaderScrollView {
         var scalingHeaderScrollView = self
