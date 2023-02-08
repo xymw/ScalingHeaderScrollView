@@ -37,6 +37,9 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
     /// Current ScrollView offset
     @Binding private var scrollOffset: CGFloat
 
+    /// Scale of header based on pull to refresh gesture
+    @Binding private var pullToRefreshScale: CGFloat
+
     /// Automatically sets to true, if pull to refresh is triggered. Manually set to false to hide loading indicator.
     @Binding private var isLoading: Bool
 
@@ -71,7 +74,7 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
     }
 
     private var contentOffset: CGFloat {
-        isLoading && !noPullToRefresh ? maxHeight + 32.0 : maxHeight
+        maxHeight
     }
 
     private var progressViewOffset: CGFloat {
@@ -85,7 +88,7 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
 
     /// Scaling for header: to enlarge while pulling down
     private var headerScaleOnPullDown: CGFloat {
-        noPullToRefresh && allowsHeaderGrowthFlag ? max(1.0, getHeightForHeaderView() / maxHeight * 0.9) : 1.0
+        allowsHeaderGrowthFlag ? max(1.0, getHeightForHeaderView() / maxHeight * 0.9) : 1.0
     }
 
     private var needToShowProgressView: Bool {
@@ -101,6 +104,7 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
         _scrollOffset = .constant(0)
         _isLoading = .constant(false)
         _scrollToTop = .constant(false)
+        _pullToRefreshScale = .constant(1)
     }
 
     // MARK: - Body builder
@@ -122,20 +126,21 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
 
             GeometryReader { geometry in
                 ZStack(alignment: .topLeading) {
-                    if needToShowProgressView {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .frame(width: UIScreen.main.bounds.width, height: getHeightForLoadingView())
-                            .scaleEffect(1.25)
-                            .offset(y: getOffsetForHeader() + progressViewOffset)
-                    }
-
                     header
                         .frame(height: headerHeight)
                         .clipped()
                         .offset(y: getOffsetForHeader())
                         .allowsHitTesting(true)
                         .scaleEffect(headerScaleOnPullDown)
+
+                    if needToShowProgressView {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .frame(width: UIScreen.main.bounds.width, height: headerHeight)
+                            .scaleEffect(1.25)
+                            .allowsHitTesting(false)
+                            .offset(y: getOffsetForHeader() + 10)
+                    }
                 }
                 .offset(y: getGeometryReaderVsScrollView(geometry))
             }
@@ -161,6 +166,7 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
         scrollViewDelegate.didScroll = {
             self.progress = getCollapseProgress()
             self.scrollOffset = getScrollOffset()
+            self.pullToRefreshScale = max(1.0, getHeightForHeaderView() / maxHeight * 0.9)
         }
         scrollViewDelegate.didEndDragging = {
             isSpinning = false
@@ -211,11 +217,7 @@ public struct ScalingHeaderScrollView<Header: View, Content: View>: View {
 
     private func getHeightForHeaderView() -> CGFloat {
         let offset = getScrollOffset()
-        if noPullToRefresh {
-            return max(minHeight, maxHeight + offset)
-        } else {
-            return min(max(minHeight, maxHeight + offset), maxHeight)
-        }
+        return max(minHeight, maxHeight + offset)
     }
 
     private func getCollapseProgress() -> CGFloat {
@@ -241,6 +243,12 @@ public extension ScalingHeaderScrollView {
     func scrollOffset(_ scrollOffset: Binding<CGFloat>) -> ScalingHeaderScrollView {
         var scalingHeaderScrollView = self
         scalingHeaderScrollView._scrollOffset = scrollOffset
+        return scalingHeaderScrollView
+    }
+
+    func pullToRefreshScale(_ pullToRefreshScale: Binding<CGFloat>) -> ScalingHeaderScrollView {
+        var scalingHeaderScrollView = self
+        scalingHeaderScrollView._pullToRefreshScale = pullToRefreshScale
         return scalingHeaderScrollView
     }
 
